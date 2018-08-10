@@ -1,0 +1,237 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="css/bootstrap.min.css">
+
+
+    <title>Changes</title>
+    <style>
+	#bottom-info-bar{
+		background-color: black;
+		color: white;
+		font-size: 0.8rem;
+	}
+	#bottom-info-bar-block{
+		display: inline-block;
+	}
+	#normal-mode-indicator{
+		background-color: yellow;
+		color: black;
+		font-weight: bold;
+		padding: 2px 5px;
+		max-width: fit-content;
+	}
+	#insert-mode-indicator{
+		background-color: blue;
+		color: black;
+		font-weight: bold;
+		padding: 2px 5px;
+		max-width: fit-content;
+	}
+	.active-card{
+		border: 5px solid #007bff;
+	}
+	</style>
+  </head>
+  <body>
+    <div class="container" id="app">
+		<changes-list :event-bus='eventBus'></changes-list>
+	<div class='fixed-bottom' id='bottom-info-bar'><div id='insert-mode-indicator' class='bottom-info-bar-block' v-if='insertMode'>INSERT</div><div id='normal-mode-indicator' class='bottom-info-bar-block' v-if='!insertMode'>NORMAL</div></div>
+	</div>
+
+	<script src='js/vue.js'></script>
+	<script>
+		var changeComponent = {
+			props: ['change'],
+			template: `
+			<div class="card mb-1" :class="{'active-card': change.isActive}">
+                <div class="card-body">
+					<h4 class='card-title'>{{ change.title }}</h4>
+					<p class='card-text'>{{ change.text}}</p>
+					<a v-for='link in change.links' class='card-link' :href='link.url'>{{ link.text }}</a>
+				</div>
+			</div>
+			</div>
+			`,
+		};
+		var changesListComponent = {
+			components: {
+				change: changeComponent,
+			},
+			props: ['eventBus'],
+			template: `
+				<div class="row">
+					<div class="col">
+						<h1 class='text-center'>Changes</h1>
+						
+						<template v-if='changes.length>0'>
+						<template v-for='change in changes'>
+							<change :change='change'></change>
+						</template>
+						</template>
+						<h6 v-else class='text-center mt-5'>No more changes. Check back later.</h6>
+					</div>
+				</div>
+			`,
+			created: function(){
+				this.eventBus.$on('jKey', () => {
+					this.activateNext();
+				});
+				this.eventBus.$on('kKey', () => {
+					this.activatePrevious();
+				});
+				this.eventBus.$on('mKey', () => {
+					this.markDone();
+				});
+			},
+			data: function() {
+				return {
+					activeChangeNumber: 0,
+					changes:[
+						{
+							title: 'Reliance Industries',
+							text: 'Reliance Jio profits for the first time in 9 quarters',
+							links: [
+								{
+									url: 'http://www.reliance.jio/mark_done',
+									text: 'Mark Done',
+								},
+								],
+							isActive: true,
+							},
+						{
+							title: 'Tata Chemicals Ltd.',
+							text: 'Tata launches iodine free refined salt',
+							links: [
+								{
+									url: 'http://www.tata.salt/mark_done',
+									text: 'Mark Done',
+								},
+								],
+							isActive: false,
+						},
+						{
+							title: 'Bharti Airtel Ltd.',
+							text: 'Airtel profits down 80% amid domination from Jio',
+							links: [
+								{
+									url: 'http://www.airtel.down/mark_done',
+									text: 'Mark Done',
+								},
+								],
+							isActive: false,
+							},
+						{
+							title: 'BSNL',
+							text: 'BSNL breaks even despite increase in revenue due to large non-competitive workforce and outdated technology',
+							links: [
+								{
+									url: 'http://www.airtel.down/mark_done',
+									text: 'Mark Done',
+								},
+								],
+							isActive: false,
+							},
+					],
+				};
+			},
+			methods: {
+				activateNext: function(){
+					if(this.activeChangeNumber+1 < this.changes.length){
+						this.changes[this.activeChangeNumber].isActive = false;
+						this.changes[this.activeChangeNumber+1].isActive = true;
+						this.activeChangeNumber++;
+					}
+				},
+				activatePrevious: function(){
+					if(this.activeChangeNumber-1 > -1){
+						this.changes[this.activeChangeNumber].isActive = false;
+						this.changes[this.activeChangeNumber-1].isActive = true;
+						this.activeChangeNumber--;
+					}
+				},
+				markDone: function(){
+					this.changes.splice(this.activeChangeNumber, 1);
+					if(this.changes.length>0){
+						if(this.activeChangeNumber > this.changes.length-1){
+							this.changes[this.activeChangeNumber-1].isActive = true;
+							this.activeChangeNumber--;
+						}
+						else{
+							this.changes[this.activeChangeNumber].isActive = true;
+						}
+					}
+				}
+			},
+		};
+		var app = new Vue({
+			el: '#app',
+			components: {
+				'changes-list': changesListComponent,
+			},
+			created: function () {
+				var app = this;
+				window.addEventListener('keyup', function(event){
+					/* global keyboard shortcuts */
+					//escape key
+					if(app.insertMode){
+						if(event.keyCode == 27){
+							app.insertMode = false;
+						}
+					}
+					else{
+						//i key
+						if(event.keyCode == 73){
+							if(app.insertMode===true){
+							}
+							else{
+								app.insertMode = true;
+							}
+						}
+						//j key
+						else if(event.keyCode == 74 && !event.shiftKey){
+							app.jKey();
+						}
+						//k key
+						else if(event.keyCode == 75){
+							app.kKey();
+						}
+						//m key
+						else if(event.keyCode == 77){
+							app.mKey();
+						}
+						else if(event.keyCode == 74 && event.shiftKey){
+							console.log('shift+j pressed');
+						}
+					}
+				});
+			},
+			data:{
+				insertMode: false,
+				eventBus: new Vue(),
+			},
+			methods: {
+				jKey: function(){
+					this.eventBus.$emit('jKey');
+				},
+				kKey: function(){
+					this.eventBus.$emit('kKey');
+				},
+				mKey: function(){
+					this.eventBus.$emit('mKey');
+				}
+			}
+		});
+	</script>
+    <!-- Optional JavaScript -->
+    <!-- jQuery first, then Popper.js, then Bootstrap JS -->
+    <script src="js/jquery-3.3.1.min.js"></script>
+    <script src="js/popper.min.js"></script>
+    <script src="js/bootstrap.min.js"></script>
+  </body>
+</html>
